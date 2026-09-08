@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SKAY Control Panel</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #ffffff;
+      --text-sub: #aaaaaa;
+      --accent-red: #e53935;
+      --accent-green: #4caf50;
+      --border-color: #2a2a2a;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-red);
+      object-fit: cover;
+    }
+    .user-info h2 { margin: 0; font-size: 18px; }
+    .user-info p { margin: 2px 0 0 0; color: var(--text-sub); font-size: 13px; }
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+    }
+    .card-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .fine { color: var(--accent-red); font-weight: bold; }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-red);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #loader { text-align: center; padding: 40px; color: var(--text-sub); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img id="userAvatar" class="avatar" src="https://via.placeholder.com/52/e53935/ffffff?text=SKAY" alt="Avatar">
+    <div class="user-info">
+      <h2 id="userName">Завантаження...</h2>
+      <p id="userMeta">Сокланівець SKAY</p>
+    </div>
+  </div>
+
+  <div id="loader">⏳ Зчитуємо дані з Google Таблиці...</div>
+
+  <div id="mainContent" style="display: none;">
+    <div class="card">
+      <div class="card-title">💳 Фінанси та Порушення</div>
+      <div class="stat-row">
+        <span>Ранг:</span>
+        <span id="rankVal">-</span>
+      </div>
+      <div class="stat-row">
+        <span>Попередження / Догани:</span>
+        <span id="warnVal">-</span>
+      </div>
+      <div class="stat-row">
+        <span>Активні штрафи:</span>
+        <span id="penaltyVal" class="fine">0 грн.</span>
+      </div>
+      <div class="stat-row">
+        <span>Підсумковий баланс:</span>
+        <span id="totalVal">0 грн.</span>
+      </div>
+    </div>
+
+    <button class="btn" onclick="tg.close()">Закрити Кабінет</button>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+      document.getElementById('userName').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+      if (user.photo_url) {
+        document.getElementById('userAvatar').src = user.photo_url;
+      }
+    }
+
+    const GAS_URL = "https://script.google.com/macros/s/1pJG6r_IRdqhMFGEFuvy5Xvd6LXJFF0o0gljFw91czTU0txBs6ulwW6b/exec";
+    const userId = user?.id || "ТЕСТ";
+
+    fetch(`${GAS_URL}?action=getCabinetInfo&userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+
+        if (data.nick) document.getElementById('userName').innerText = data.nick;
+        document.getElementById('userMeta').innerText = `Ранг: ${data.rank || 'Сокланівець'}`;
+        document.getElementById('rankVal').innerText = data.rank || 'Місцевий';
+        document.getElementById('warnVal').innerText = `${data.warnings || 0} / ${data.reprimands || 0}`;
+        document.getElementById('penaltyVal').innerText = data.penaltyFormatted || '0 грн.';
+        document.getElementById('totalVal').innerText = data.totalFormatted || '0 грн.';
+      })
+      .catch(err => {
+        document.getElementById('loader').innerText = "❌ Помилка завантаження даних.";
+      });
+  </script>
+</body>
+</html>
