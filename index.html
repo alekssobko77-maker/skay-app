@@ -2,146 +2,159 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SKAY Control Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKAY Clan Mini App</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --text-color: #ffffff;
-      --text-sub: #aaaaaa;
-      --accent-red: #e53935;
-      --accent-green: #4caf50;
-      --border-color: #2a2a2a;
-    }
     body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
       margin: 0;
       padding: 16px;
-      box-sizing: border-box;
     }
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .avatar {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 2px solid var(--accent-red);
-      object-fit: cover;
-    }
-    .user-info h2 { margin: 0; font-size: 18px; }
-    .user-info p { margin: 2px 0 0 0; color: var(--text-sub); font-size: 13px; }
     .card {
-      background: var(--card-bg);
+      background: #1e1e1e;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 16px;
-      border: 1px solid var(--border-color);
+      border: 1px solid #333;
     }
-    .card-title {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-sub);
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
       margin-bottom: 12px;
+    }
+    .profile-title {
+      font-size: 18px;
       font-weight: bold;
     }
-    .stat-row {
+    .rank-badge {
+      color: #f39c12;
+      font-weight: bold;
+    }
+    .data-row {
       display: flex;
       justify-content: space-between;
       padding: 8px 0;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 1px solid #2a2a2a;
     }
-    .stat-row:last-child { border-bottom: none; }
-    .fine { color: var(--accent-red); font-weight: bold; }
     .btn {
       width: 100%;
-      padding: 14px;
-      background: var(--accent-red);
+      padding: 12px;
+      background: #e74c3c;
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       font-weight: bold;
-      font-size: 15px;
       cursor: pointer;
+      margin-top: 10px;
     }
-    #loader { text-align: center; padding: 40px; color: var(--text-sub); }
+    #loading { text-align: center; padding: 20px; }
+    #auth-box { display: none; }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #222;
+      color: #fff;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <img id="userAvatar" class="avatar" src="https://via.placeholder.com/52/e53935/ffffff?text=SKAY" alt="Avatar">
-    <div class="user-info">
-      <h2 id="userName">Завантаження...</h2>
-      <p id="userMeta">Сокланівець SKAY</p>
-    </div>
+  <div id="loading">Завантаження даних...</div>
+
+  <!-- Вікно авторизації за карткою (якщо Telegram ID не знайдено) -->
+  <div id="auth-box" class="card">
+    <h3>Авторизація</h3>
+    <p>Введіть 6 цифр вашої картки:</p>
+    <input type="text" id="cardInput" placeholder="172258">
+    <button class="btn" style="background:#27ae60;" onclick="loginWithCard()">Увійти</button>
   </div>
 
-  <div id="loader">⏳ Зчитуємо дані з Google Таблиці...</div>
-
-  <div id="mainContent" style="display: none;">
+  <!-- Особистий кабінет -->
+  <div id="app" style="display:none;">
     <div class="card">
-      <div class="card-title">💳 Фінанси та Порушення</div>
-      <div class="stat-row">
-        <span>Ранг:</span>
-        <span id="rankVal">-</span>
-      </div>
-      <div class="stat-row">
-        <span>Попередження / Догани:</span>
-        <span id="warnVal">-</span>
-      </div>
-      <div class="stat-row">
-        <span>Активні штрафи:</span>
-        <span id="penaltyVal" class="fine">0 грн.</span>
-      </div>
-      <div class="stat-row">
-        <span>Підсумковий баланс:</span>
-        <span id="totalVal">0 грн.</span>
+      <div class="profile-header">
+        <div>
+          <div class="profile-title" id="userName">--</div>
+          <div class="rank-badge" id="userRank">--</div>
+        </div>
       </div>
     </div>
 
-    <button class="btn" onclick="tg.close()">Закрити Кабінет</button>
+    <div class="card">
+      <div class="data-row"><span>День народження:</span><span id="userDob">--</span></div>
+      <div class="data-row"><span>Номер карти:</span><span id="userCard">--</span></div>
+      <div class="data-row"><span>Ігровий ID:</span><span id="userGameId">--</span></div>
+      <div class="data-row"><span>Попередження:</span><span id="userWarnings">--</span></div>
+      <div class="data-row"><span>Догани:</span><span id="userDohani">--</span></div>
+      <div class="data-row"><span>Бонуси:</span><span id="userBonus">--</span></div>
+      <div class="data-row"><span>Штрафи:</span><span id="userPenalty">--</span></div>
+    </div>
+
+    <button class="btn" onclick="Telegram.WebApp.close()">Закрити Кабінет</button>
   </div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    // ЗАМІНІТЬ ЦЕ ПОСИЛАННЯ НА ВАШ НОВИЙ WEB APP URL З GOOGLE APPS SCRIPT
+    const SCRIPT_URL = "ВСТАВТЕ_ВАШ_WEB_APP_URL_ТУТ";
+
     const user = tg.initDataUnsafe?.user;
-    if (user) {
-      document.getElementById('userName').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-      if (user.photo_url) {
-        document.getElementById('userAvatar').src = user.photo_url;
+    const telegramId = user ? user.id : "";
+
+    function loadProfile(queryParam) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('auth-box').style.display = 'none';
+      document.getElementById('app').style.display = 'none';
+
+      fetch(`${SCRIPT_URL}?${queryParam}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('loading').style.display = 'none';
+          if (data.error) {
+            document.getElementById('auth-box').style.display = 'block';
+          } else {
+            document.getElementById('userName').innerText = data.nickname;
+            document.getElementById('userRank').innerText = "Ранг: " + data.rank;
+            document.getElementById('userDob').innerText = data.dob || "--";
+            document.getElementById('userCard').innerText = data.card || "--";
+            document.getElementById('userGameId').innerText = data.gameId || "--";
+            document.getElementById('userWarnings').innerText = data.warnings || "0/3";
+            document.getElementById('userDohani').innerText = data.dohani || "0/3";
+            document.getElementById('userBonus').innerText = (data.bonus || 0) + " грн.";
+            document.getElementById('userPenalty').innerText = (data.penalty || 0) + " грн.";
+            
+            document.getElementById('app').style.display = 'block';
+          }
+        })
+        .catch(err => {
+          document.getElementById('loading').innerText = "Помилка мережі";
+        });
+    }
+
+    function loginWithCard() {
+      const card = document.getElementById('cardInput').value.trim();
+      if (card) {
+        loadProfile(`card=${card}&telegramId=${telegramId}`);
       }
     }
 
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwxdWSOguQiHZ7lg8c3424tfsL33wXaWkaXbX3gO4q54zHzBWvjiDTVmr0Bln9dhims/exec";
-    const userId = user?.id || "ТЕСТ";
-
-    fetch(`${GAS_URL}?action=getCabinetInfo&userId=${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-
-        if (data.nick) document.getElementById('userName').innerText = data.nick;
-        document.getElementById('userMeta').innerText = `Ранг: ${data.rank || 'Сокланівець'}`;
-        document.getElementById('rankVal').innerText = data.rank || 'Місцевий';
-        document.getElementById('warnVal').innerText = `${data.warnings || 0} / ${data.reprimands || 0}`;
-        document.getElementById('penaltyVal').innerText = data.penaltyFormatted || '0 грн.';
-        document.getElementById('totalVal').innerText = data.totalFormatted || '0 грн.';
-      })
-      .catch(err => {
-        document.getElementById('loader').innerText = "❌ Помилка завантаження даних.";
-      });
+    // Автоматичний вхід при відкритті
+    if (telegramId) {
+      loadProfile(`telegramId=${telegramId}`);
+    } else {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('auth-box').style.display = 'block';
+    }
   </script>
 </body>
 </html>
